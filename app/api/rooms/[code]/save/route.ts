@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   const [room] = await db.select().from(rooms).where(eq(rooms.code, code)).limit(1)
   if (!room) return NextResponse.json({ error: 'Room introuvable' }, { status: 404 })
-  if (room.createdBy !== session.userId && !session.isAdmin)
+  if (room.createdBy !== session.id && !session.isAdmin)
     return NextResponse.json({ error: 'Interdit' }, { status: 403 })
 
   const comps = room.compositions as Composition[] | null

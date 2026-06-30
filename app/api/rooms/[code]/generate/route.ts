@@ -14,7 +14,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
   const { code } = await params
   const [room] = await db.select().from(rooms).where(eq(rooms.code, code)).limit(1)
   if (!room) return NextResponse.json({ error: 'Room introuvable' }, { status: 404 })
-  if (room.createdBy !== session.userId && !session.isAdmin)
+  if (room.createdBy !== session.id && !session.isAdmin)
     return NextResponse.json({ error: 'Interdit' }, { status: 403 })
 
   const members = await db.select().from(roomMembers).where(eq(roomMembers.roomId, room.id))

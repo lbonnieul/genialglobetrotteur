@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2h
 
   const [room] = await db.insert(rooms).values({
-    code, regionId, createdBy: session.userId, expiresAt,
+    code, regionId, createdBy: session.id, expiresAt,
   }).returning()
 
   for (const m of members as { name: string; userId: number | null }[]) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       userId: m.userId ?? null,
       playerName: m.name,
       isGuest,
-      hasJoined: isGuest || m.userId === session.userId,
+      hasJoined: isGuest || m.userId === session.id,
     })
   }
 
