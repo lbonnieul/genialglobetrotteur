@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { rooms, roomMembers, regions } from '@/schema'
+import { rooms, roomMembers } from '@/schema'
 import { eq } from 'drizzle-orm'
 import { getSession } from '@/lib/auth'
 
@@ -13,9 +13,8 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { regionId, members } = await req.json()
-  if (!regionId || !Array.isArray(members) || members.length < 1)
-    return NextResponse.json({ error: 'Données invalides' }, { status: 400 })
+  const { regionId } = await req.json()
+  if (!regionId) return NextResponse.json({ error: 'Région requise' }, { status: 400 })
 
   let code = generateCode()
   // Retry on collision (extremely rare)
@@ -31,16 +30,13 @@ export async function POST(req: NextRequest) {
     code, regionId, createdBy: session.id, expiresAt,
   }).returning()
 
-  for (const m of members as { name: string; userId: number | null }[]) {
-    const isGuest = m.userId === null
-    await db.insert(roomMembers).values({
-      roomId: room.id,
-      userId: m.userId ?? null,
-      playerName: m.name,
-      isGuest,
-      hasJoined: isGuest || m.userId === session.id,
-    })
-  }
+  await db.insert(roomMembers).values({
+    roomId: room.id,
+    userId: session.id,
+    playerName: session.username,
+    isGuest: false,
+    hasJoined: true,
+  })
 
   return NextResponse.json({ code })
 }

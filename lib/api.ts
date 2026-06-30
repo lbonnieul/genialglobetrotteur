@@ -73,12 +73,14 @@ export const api = {
   }) => request<{ compositions: Composition[] }>('/api/team/compositions', post(data)),
 
   // Rooms
-  createRoom: (data: { regionId: number; members: { name: string; userId: number | null }[] }) =>
+  createRoom: (data: { regionId: number }) =>
     request<{ code: string }>('/api/rooms', post(data)),
   getRoom: (code: string) =>
     request<import('@/lib/types').Room>(`/api/rooms/${code}`),
   joinRoom: (code: string) =>
     request<{ ok: boolean }>(`/api/rooms/${code}/join`, post({})),
+  addRoomMember: (code: string, name: string) =>
+    request<{ ok: boolean }>(`/api/rooms/${code}/members`, post({ name })),
   generateCompositions: (code: string) =>
     request<{ compositions: import('@/lib/types').Composition[] }>(`/api/rooms/${code}/generate`, post({})),
   voteComposition: (code: string, compositionIndex: number) =>

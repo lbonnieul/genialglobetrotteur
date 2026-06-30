@@ -3,63 +3,41 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { PlayerInput } from '@/components/PlayerInput'
-import { Plus, Trash2, Users } from 'lucide-react'
+import { Users, LogIn } from 'lucide-react'
 import type { Region } from '@/lib/types'
-
-interface KnownPlayer { id: number | null; name: string }
-interface Member { name: string; userId: number | null }
 
 export default function NewRoomPage() {
   const { user, fetched } = useAuthStore()
   const router = useRouter()
   const [regions, setRegions] = useState<Region[]>([])
   const [regionId, setRegionId] = useState<number | ''>('')
-  const [members, setMembers] = useState<Member[]>([{ name: '', userId: null }])
-  const [knownPlayers, setKnownPlayers] = useState<KnownPlayer[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [joinCode, setJoinCode] = useState('')
 
-  useEffect(() => {
-    api.regions().then(setRegions)
-    api.players().then(setKnownPlayers)
-  }, [])
-
-  // Pre-fill creator as first member
-  useEffect(() => {
-    if (user) setMembers([{ name: user.username, userId: user.id }])
-  }, [user])
+  useEffect(() => { api.regions().then(setRegions) }, [])
 
   if (fetched && !user) {
     return (
       <main className="main-content" style={{ maxWidth: 500 }}>
         <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-          <p style={{ color: 'var(--text-dim)' }}>Connecte-toi pour créer une room.</p>
+          <p style={{ color: 'var(--text-dim)' }}>Connecte-toi pour créer ou rejoindre une room.</p>
         </div>
       </main>
     )
   }
 
-  const addMember = () => {
-    if (members.length >= 5) return
-    setMembers(m => [...m, { name: '', userId: null }])
+  const handleJoinByCode = () => {
+    const code = joinCode.trim().toUpperCase()
+    if (!code) return
+    router.push(`/room/${code}`)
   }
-
-  const removeMember = (i: number) => setMembers(m => m.filter((_, idx) => idx !== i))
-
-  const updateMember = (i: number, name: string, userId: number | null) =>
-    setMembers(m => m.map((mb, idx) => idx !== i ? mb : { name, userId }))
-
-  const suggestionsFor = (i: number) =>
-    knownPlayers.filter(p => !members.some((mb, idx) => idx !== i && mb.name.toLowerCase() === p.name.toLowerCase()))
 
   const handleCreate = async () => {
     if (!regionId) return setError('Choisis une région.')
-    const valid = members.every(m => m.name.trim())
-    if (!valid) return setError('Remplis tous les noms de joueurs.')
     setLoading(true); setError('')
     try {
-      const { code } = await api.createRoom({ regionId: Number(regionId), members })
+      const { code } = await api.createRoom({ regionId: Number(regionId) })
       router.push(`/room/${code}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur')
@@ -70,49 +48,37 @@ export default function NewRoomPage() {
     <main className="main-content" style={{ maxWidth: 540 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
         <Users size={20} style={{ color: 'var(--gold)' }} />
-        <h2 style={{ margin: 0 }}>Nouvelle room de draft</h2>
+        <h2 style={{ margin: 0 }}>Room de draft</h2>
       </div>
       <p style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: 24 }}>
-        Crée une room, partage le code à tes coéquipiers. Chacun vote pour la compo qui lui convient.
+        Crée une room et partage le code, ou rejoins-en une avec un code reçu. Chacun vote pour la compo qui lui convient.
       </p>
+
+      <div className="card" style={{ marginBottom: 24 }}>
+        <label style={{ display: 'block', marginBottom: 8, fontSize: '13px', fontWeight: 500 }}>
+          Rejoindre une room existante
+        </label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input className="input" placeholder="Code de la room…" value={joinCode}
+            onChange={e => setJoinCode(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleJoinByCode() }}
+            style={{ textTransform: 'uppercase', letterSpacing: 2, flex: 1 }}
+            maxLength={8} />
+          <button className="btn btn-outline" onClick={handleJoinByCode} disabled={!joinCode.trim()}>
+            <LogIn size={14} /> Rejoindre
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
-          <label style={{ display: 'block', marginBottom: 6, fontSize: '13px', fontWeight: 500 }}>Région</label>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: '13px', fontWeight: 500 }}>
+            Créer une nouvelle room
+          </label>
           <select className="input" value={regionId} onChange={e => setRegionId(Number(e.target.value))}>
             <option value="">Choisir une région…</option>
             {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', marginBottom: 8, fontSize: '13px', fontWeight: 500 }}>
-            Joueurs ({members.length}/5)
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {members.map((m, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
-                  <PlayerInput
-                    value={m.name}
-                    onChange={(name, userId) => updateMember(i, name, userId)}
-                    players={suggestionsFor(i)}
-                  />
-                </div>
-                {i === 0
-                  ? <div style={{ width: 28 }} />
-                  : <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => removeMember(i)}>
-                    <Trash2 size={14} />
-                  </button>
-                }
-              </div>
-            ))}
-          </div>
-          {members.length < 5 && (
-            <button className="btn btn-ghost" style={{ marginTop: 8, fontSize: '12px' }} onClick={addMember}>
-              <Plus size={13} /> Ajouter un joueur
-            </button>
-          )}
         </div>
 
         {error && <div style={{ color: 'var(--danger)', fontSize: '13px' }}>{error}</div>}

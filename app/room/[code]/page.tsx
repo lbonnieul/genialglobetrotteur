@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { Copy, Check, Zap, Trophy, Users } from 'lucide-react'
+import { Copy, Check, Zap, Trophy, Users, UserPlus } from 'lucide-react'
 import type { Room, Composition } from '@/lib/types'
 
 const ROLE_ORDER = ['top', 'jungle', 'mid', 'bot', 'support']
@@ -20,6 +20,8 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [saving, setSaving] = useState(false)
   const [wonChoice, setWonChoice] = useState<boolean | null>(null)
   const [playedAtChoice, setPlayedAtChoice] = useState(() => new Date().toISOString().slice(0, 10))
+  const [guestName, setGuestName] = useState('')
+  const [addingGuest, setAddingGuest] = useState(false)
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -58,6 +60,18 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     finally { setGenerating(false) }
   }
 
+  const handleAddGuest = async () => {
+    if (!guestName.trim()) return
+    setAddingGuest(true)
+    try {
+      await api.addRoomMember(code, guestName.trim())
+      setGuestName('')
+      await fetchRoom()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally { setAddingGuest(false) }
+  }
+
   const handleVote = async (idx: number) => {
     try { await api.voteComposition(code, idx); await fetchRoom() }
     catch (e) { setError(e instanceof Error ? e.message : 'Erreur') }
@@ -94,7 +108,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
   const isCreator = user?.id === room.createdBy
   const myMember = room.members.find(m => m.userId === user?.id)
-  const canJoin = !!user && !!myMember && !myMember.hasJoined && !myMember.isGuest
+  const canJoin = !!user && !myMember && room.status !== 'done' && room.members.length < 5
   const myVote = room.votes.find(v => v.userId === user?.id)
 
   // Vote tally
@@ -145,14 +159,14 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'var(--dark-3)', borderRadius: 20,
               padding: '5px 12px',
-              border: `1px solid ${m.hasJoined ? 'var(--gold-dk)' : 'var(--dark-4)'}`,
+              border: '1px solid var(--gold-dk)',
             }}>
               <span style={{
                 width: 7, height: 7, borderRadius: '50%',
-                background: m.isGuest ? 'var(--text-dim)' : m.hasJoined ? 'var(--success)' : 'var(--danger)',
+                background: m.isGuest ? 'var(--text-dim)' : 'var(--success)',
                 flexShrink: 0,
               }} />
-              <span style={{ fontSize: '13px', color: m.hasJoined ? 'var(--text-lt)' : 'var(--text-dim)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-lt)' }}>
                 {m.playerName}
               </span>
               {m.isGuest && <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>guest</span>}
@@ -176,6 +190,21 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
             </button>
           )}
         </div>
+
+        {isCreator && room.status === 'waiting' && room.members.length < 5 && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <input className="input" placeholder="Ajouter un joueur sans compte…" value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddGuest() }}
+              style={{ flex: 1 }} />
+            <button className="btn btn-ghost" onClick={handleAddGuest} disabled={addingGuest || !guestName.trim()}>
+              {addingGuest
+                ? <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />
+                : <UserPlus size={14} />}
+              Ajouter
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Compositions */}
@@ -193,10 +222,10 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 key={idx}
                 comp={comp}
                 votes={votes}
-                totalVoters={room.members.filter(m => !m.isGuest && m.hasJoined).length}
+                totalVoters={room.members.filter(m => !m.isGuest).length}
                 isLeading={isLeading}
                 isMine={iMine}
-                canVote={room.status === 'voting' && !!user && !!myMember?.hasJoined}
+                canVote={room.status === 'voting' && !!user && !!myMember}
                 onVote={() => handleVote(idx)}
               />
             )
