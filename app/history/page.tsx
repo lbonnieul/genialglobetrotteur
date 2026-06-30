@@ -29,6 +29,7 @@ export default function HistoryPage() {
         const lc = playerFilter.toLowerCase()
         filtered = filtered.filter(g => g.players.some(p => p.playerName.toLowerCase().includes(lc)))
       }
+      filtered = filtered.sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
       setGames(filtered)
     }).finally(() => setLoading(false))
   }, [playerFilter, regionFilter, wonFilter])
