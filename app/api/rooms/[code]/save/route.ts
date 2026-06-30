@@ -58,7 +58,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     }))
   )
 
-  await db.update(rooms).set({ status: 'done' }).where(eq(rooms.id, room.id))
+  // Room's job is done once the game is recorded — members/votes cascade-delete with it
+  await db.delete(rooms).where(eq(rooms.id, room.id))
 
   return NextResponse.json({ gameId: game.id })
 }

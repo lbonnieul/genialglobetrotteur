@@ -15,13 +15,13 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [room, setRoom] = useState<Room | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
-  const [joining, setJoining] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [wonChoice, setWonChoice] = useState<boolean | null>(null)
   const [playedAtChoice, setPlayedAtChoice] = useState(() => new Date().toISOString().slice(0, 10))
   const [guestName, setGuestName] = useState('')
   const [addingGuest, setAddingGuest] = useState(false)
+  const [autoJoinTried, setAutoJoinTried] = useState(false)
 
   const fetchRoom = useCallback(async () => {
     try {
@@ -38,23 +38,24 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     return () => clearInterval(interval)
   }, [fetchRoom])
 
+  // Auto-join as soon as a logged-in user who isn't a member yet lands on the room
+  useEffect(() => {
+    if (!room || !user || autoJoinTried) return
+    const alreadyMember = room.members.some(m => m.userId === user.id)
+    if (alreadyMember || room.status === 'done' || room.members.length >= 5) return
+    setAutoJoinTried(true)
+    api.joinRoom(code).then(fetchRoom).catch(e => setError(e instanceof Error ? e.message : 'Erreur'))
+  }, [room, user, autoJoinTried, code, fetchRoom])
+
   const copyCode = () => {
     navigator.clipboard.writeText(code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleJoin = async () => {
-    setJoining(true)
-    try { await api.joinRoom(code); await fetchRoom() }
-    catch (e) { setError(e instanceof Error ? e.message : 'Erreur') }
-    finally { setJoining(false) }
-  }
-
   const handleGenerate = async () => {
+    if (room?.status === 'voting' && !confirm('Régénérer effacera les votes déjà enregistrés. Continuer ?')) return
     setGenerating(true)
-    try { await fetchRoom() }
-    catch { /* ignore */ }
     try { await api.generateCompositions(code); await fetchRoom() }
     catch (e) { setError(e instanceof Error ? e.message : 'Erreur') }
     finally { setGenerating(false) }
@@ -108,7 +109,8 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
   const isCreator = user?.id === room.createdBy
   const myMember = room.members.find(m => m.userId === user?.id)
-  const canJoin = !!user && !myMember && room.status !== 'done' && room.members.length < 5
+  const roomFull = room.members.length >= 5
+  const cannotJoin = !!user && !myMember && (roomFull || room.status === 'done')
   const myVote = room.votes.find(v => v.userId === user?.id)
 
   // Vote tally
@@ -174,19 +176,19 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
           ))}
         </div>
 
+        {cannotJoin && (
+          <div style={{ fontSize: '12px', color: 'var(--danger)', marginTop: 4 }}>
+            {roomFull ? 'Room complète (5 joueurs max), tu ne peux pas la rejoindre.' : 'Cette partie est déjà terminée.'}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-          {canJoin && (
-            <button className="btn btn-outline" onClick={handleJoin} disabled={joining}>
-              {joining ? <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} /> : null}
-              Rejoindre la room
-            </button>
-          )}
-          {isCreator && room.status === 'waiting' && (
+          {isCreator && (room.status === 'waiting' || room.status === 'voting') && (
             <button className="btn btn-gold" onClick={handleGenerate} disabled={generating}>
               {generating
                 ? <span className="spinner" style={{ width: 13, height: 13, borderWidth: 2 }} />
                 : <Zap size={13} />}
-              Générer les compositions
+              {room.status === 'voting' ? 'Régénérer les compositions' : 'Générer les compositions'}
             </button>
           )}
         </div>

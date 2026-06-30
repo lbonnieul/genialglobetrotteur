@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { rooms, roomMembers, regions, champions, championRegions, championRoles, championPreferences } from '@/schema'
-import { eq, and, inArray } from 'drizzle-orm'
+import { rooms, roomMembers, roomVotes, champions, championRegions, championRoles, championPreferences } from '@/schema'
+import { eq, inArray } from 'drizzle-orm'
 import { getSession } from '@/lib/auth'
 import { buildCompositions } from '@/lib/composition'
 
@@ -16,6 +16,8 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
   if (!room) return NextResponse.json({ error: 'Room introuvable' }, { status: 404 })
   if (room.createdBy !== session.id && !session.isAdmin)
     return NextResponse.json({ error: 'Interdit' }, { status: 403 })
+  if (room.status === 'done')
+    return NextResponse.json({ error: 'La partie est déjà enregistrée' }, { status: 400 })
 
   const members = await db.select().from(roomMembers).where(eq(roomMembers.roomId, room.id))
 
@@ -60,6 +62,9 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
   }))
 
   const compositions = buildCompositions(players, champList, 3)
+
+  // Clear previous votes since composition indices are reset
+  await db.delete(roomVotes).where(eq(roomVotes.roomId, room.id))
 
   await db.update(rooms).set({ compositions, status: 'voting' }).where(eq(rooms.id, room.id))
 

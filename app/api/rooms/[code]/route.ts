@@ -21,6 +21,11 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
   if (!room) return NextResponse.json({ error: 'Room introuvable' }, { status: 404 })
 
+  if (room.expiresAt.getTime() < Date.now()) {
+    await db.delete(rooms).where(eq(rooms.id, room.id))
+    return NextResponse.json({ error: 'Room expirée' }, { status: 404 })
+  }
+
   const members = await db.select().from(roomMembers).where(eq(roomMembers.roomId, room.id))
   const votes = await db.select({
     userId: roomVotes.userId,
