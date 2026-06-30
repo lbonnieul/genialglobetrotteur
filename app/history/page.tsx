@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { Search, Trash2 } from 'lucide-react'
+import { EditGame } from '@/components/EditGame'
+import { Search, Trash2, Pencil } from 'lucide-react'
 import type { Game, Region } from '@/lib/types'
 
 const ROLE_ORDER = ['top', 'jungle', 'mid', 'bot', 'support']
@@ -31,6 +32,9 @@ export default function HistoryPage() {
       setGames(filtered)
     }).finally(() => setLoading(false))
   }, [playerFilter, regionFilter, wonFilter])
+
+  const updateGame = (updated: Game) =>
+    setGames(gs => gs.map(g => g.id === updated.id ? updated : g))
 
   return (
     <main className="main-content">
@@ -64,6 +68,7 @@ export default function HistoryPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {games.map(g => (
             <GameCard key={g.id} game={g} isAdmin={user?.isAdmin}
+              onUpdate={updateGame}
               onDelete={async (id) => {
                 if (!confirm('Supprimer cette partie ?')) return
                 await api.deleteGame(id)
@@ -77,9 +82,15 @@ export default function HistoryPage() {
   )
 }
 
-function GameCard({ game, isAdmin, onDelete }: { game: Game; isAdmin?: boolean; onDelete?: (id: number) => void }) {
+function GameCard({ game, isAdmin, onDelete, onUpdate }: {
+  game: Game
+  isAdmin?: boolean
+  onDelete?: (id: number) => void
+  onUpdate?: (updated: Game) => void
+}) {
+  const [editing, setEditing] = useState(false)
   const date = new Date(game.playedAt).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    day: '2-digit', month: 'short', year: 'numeric'
   })
 
   return (
@@ -99,41 +110,59 @@ function GameCard({ game, isAdmin, onDelete }: { game: Game; isAdmin?: boolean; 
             <div style={{ color: 'var(--text-dim)', fontSize: '11px', marginTop: 2 }}>{date}</div>
           </div>
         </div>
-        {isAdmin && onDelete && (
-          <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => onDelete(game.id)}>
-            <Trash2 size={14} style={{ color: 'var(--danger)' }} />
-          </button>
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button className="btn btn-ghost" style={{ padding: 4 }}
+              onClick={() => setEditing(e => !e)} title="Modifier">
+              <Pencil size={14} style={{ color: editing ? 'var(--gold)' : undefined }} />
+            </button>
+            {onDelete && (
+              <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => onDelete(game.id)}>
+                <Trash2 size={14} style={{ color: 'var(--danger)' }} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {game.notes && (
+      {game.notes && !editing && (
         <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px', fontStyle: 'italic' }}>
           "{game.notes}"
         </div>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {[...game.players].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)).map((p, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            background: 'var(--dark-4)', borderRadius: '8px', padding: '5px 8px',
-          }}>
-            {p.championImageUrl && (
-              <img src={p.championImageUrl} alt={p.championName}
-                style={{ width: 28, height: 28, borderRadius: 2, objectFit: 'cover' }} />
-            )}
-            <div>
-              <div style={{ fontSize: '12px', color: 'var(--text-lt)', fontWeight: 600 }}>{p.playerName}</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                {p.championName} ·
-                <span className={`role-badge role-${p.role}`} style={{ fontSize: '10px', padding: '1px 5px' }}>
-                  {p.role}
-                </span>
+      {!editing && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {[...game.players].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)).map((p, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'var(--dark-4)', borderRadius: '8px', padding: '5px 8px',
+            }}>
+              {p.championImageUrl && (
+                <img src={p.championImageUrl} alt={p.championName}
+                  style={{ width: 28, height: 28, borderRadius: 2, objectFit: 'cover' }} />
+              )}
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--text-lt)', fontWeight: 600 }}>{p.playerName}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {p.championName} ·
+                  <span className={`role-badge role-${p.role}`} style={{ fontSize: '10px', padding: '1px 5px' }}>
+                    {p.role}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {editing && onUpdate && (
+        <EditGame
+          game={game}
+          onClose={() => setEditing(false)}
+          onSaved={(updated) => { onUpdate(updated); setEditing(false) }}
+        />
+      )}
     </div>
   )
 }

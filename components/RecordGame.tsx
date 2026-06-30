@@ -29,6 +29,7 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
   const { user } = useAuthStore()
   const [won, setWon] = useState(true)
   const [notes, setNotes] = useState('')
+  const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [players, setPlayers] = useState<PlayerRow[]>([
     { playerName: user?.username ?? '', championRiotId: '', championName: '', championImageUrl: '', role: '', userId: user?.id ?? null }
   ])
@@ -76,6 +77,7 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
       await api.createGame({
         regionId, won,
         notes: notes || undefined,
+        playedAt: playedAt || undefined,
         players: players.map(p => ({
           userId: p.userId,
           playerName: p.playerName,
@@ -150,9 +152,15 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
         </button>
       )}
 
-      <div style={{ marginBottom: '12px' }}>
-        <label style={{ display: 'block', marginBottom: 4 }}>Notes (optionnel)</label>
-        <input className="input" placeholder="Commentaire sur la partie…" value={notes} onChange={e => setNotes(e.target.value)} />
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ flex: '0 0 auto' }}>
+          <label style={{ display: 'block', marginBottom: 4, fontSize: '13px' }}>Date de la partie</label>
+          <input className="input" type="date" value={playedAt} onChange={e => setPlayedAt(e.target.value)} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: 'block', marginBottom: 4, fontSize: '13px' }}>Notes (optionnel)</label>
+          <input className="input" placeholder="Commentaire sur la partie…" value={notes} onChange={e => setNotes(e.target.value)} />
+        </div>
       </div>
 
       {error && <div style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: '10px' }}>{error}</div>}

@@ -52,11 +52,16 @@ export const api = {
   // Games
   games: () => request<Game[]>('/api/games'),
   deleteGame: (id: number) => request<void>(`/api/games/${id}`, { method: 'DELETE' }),
+  updateGame: (id: number, data: {
+    won?: boolean; notes?: string; playedAt?: string
+    players?: { id: number; playerName: string; userId: number | null; championRiotId: string; championName: string; championImageUrl?: string; role: string }[]
+  }) => request<Game>(`/api/games/${id}`, { method: 'PATCH', ...patch(data) }),
 
   createGame: (data: {
     regionId: number
     won: boolean
     notes?: string
+    playedAt?: string
     players: { userId?: number | null; playerName: string; championRiotId: string; championName: string; championImageUrl?: string; role: string }[]
   }) => request<Game>('/api/games', post(data)),
 

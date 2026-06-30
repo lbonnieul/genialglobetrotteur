@@ -36,9 +36,12 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { regionId, won, notes, players } = await req.json()
+  const { regionId, won, notes, playedAt, players } = await req.json()
 
-  const [game] = await db.insert(games).values({ regionId, won, notes }).returning()
+  const [game] = await db.insert(games).values({
+    regionId, won, notes,
+    playedAt: playedAt ? new Date(playedAt) : undefined,
+  }).returning()
 
   if (players?.length) {
     await db.insert(gamePlayers).values(
