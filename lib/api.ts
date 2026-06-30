@@ -55,7 +55,7 @@ export const api = {
   updateGame: (id: number, data: {
     won?: boolean; notes?: string; playedAt?: string
     players?: { id: number; playerName: string; userId: number | null; championRiotId: string; championName: string; championImageUrl?: string; role: string }[]
-  }) => request<Game>(`/api/games/${id}`, { method: 'PATCH', ...patch(data) }),
+  }) => request<Game>(`/api/games/${id}`, patch(data)),
 
   createGame: (data: {
     regionId: number
