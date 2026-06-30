@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, boolean, integer, timestamp, unique, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, serial, varchar, boolean, integer, timestamp, unique, primaryKey, jsonb } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 export const users = pgTable('users', {
@@ -62,6 +62,34 @@ export const gamePlayers = pgTable('game_players', {
   championImageUrl: varchar('champion_image_url', { length: 500 }),
   role: varchar('role', { length: 20 }).notNull(),
 })
+
+export const rooms = pgTable('rooms', {
+  id: serial('id').primaryKey(),
+  code: varchar('code', { length: 8 }).notNull().unique(),
+  regionId: integer('region_id').references(() => regions.id, { onDelete: 'set null' }),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  status: varchar('status', { length: 20 }).notNull().default('waiting'),
+  compositions: jsonb('compositions'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+})
+
+export const roomMembers = pgTable('room_members', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').notNull().references(() => rooms.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  playerName: varchar('player_name', { length: 100 }).notNull(),
+  isGuest: boolean('is_guest').notNull().default(false),
+  hasJoined: boolean('has_joined').notNull().default(false),
+})
+
+export const roomVotes = pgTable('room_votes', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').notNull().references(() => rooms.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  compositionIndex: integer('composition_index').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, t => [unique('uq_room_vote').on(t.roomId, t.userId)])
 
 // Relations
 export const championsRelations = relations(champions, ({ many }) => ({

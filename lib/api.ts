@@ -72,6 +72,20 @@ export const api = {
     numSuggestions?: number
   }) => request<{ compositions: Composition[] }>('/api/team/compositions', post(data)),
 
+  // Rooms
+  createRoom: (data: { regionId: number; members: { name: string; userId: number | null }[] }) =>
+    request<{ code: string }>('/api/rooms', post(data)),
+  getRoom: (code: string) =>
+    request<import('@/lib/types').Room>(`/api/rooms/${code}`),
+  joinRoom: (code: string) =>
+    request<{ ok: boolean }>(`/api/rooms/${code}/join`, post({})),
+  generateCompositions: (code: string) =>
+    request<{ compositions: import('@/lib/types').Composition[] }>(`/api/rooms/${code}/generate`, post({})),
+  voteComposition: (code: string, compositionIndex: number) =>
+    request<{ ok: boolean }>(`/api/rooms/${code}/vote`, post({ compositionIndex })),
+  saveRoomAsGame: (code: string, data: { won: boolean; playedAt?: string }) =>
+    request<{ gameId: number }>(`/api/rooms/${code}/save`, post(data)),
+
   // Admin
   seed: (secret: string) =>
     request<{ message: string }>('/api/admin/seed', post({ secret })),

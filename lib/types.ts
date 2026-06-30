@@ -81,3 +81,29 @@ export interface TeamCompositionResponse {
   region: string
   compositions: Composition[]
 }
+
+export interface RoomMember {
+  id: number
+  userId: number | null
+  playerName: string
+  isGuest: boolean
+  hasJoined: boolean
+}
+
+export interface RoomVote {
+  userId: number
+  compositionIndex: number
+}
+
+export interface Room {
+  id: number
+  code: string
+  regionId: number | null
+  regionName: string | null
+  createdBy: number | null
+  status: string
+  compositions: Composition[] | null
+  members: RoomMember[]
+  votes: RoomVote[]
+  expiresAt: string
+}
