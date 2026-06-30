@@ -3,7 +3,7 @@ import './globals.css'
 import { Navbar } from '@/components/Navbar'
 
 export const metadata: Metadata = {
-  title: 'LoL Globe-Trotter',
+  title: 'Genial Globe-Trotter',
   description: 'Tracker de parties LoL par région de Runeterra',
 }
 
