@@ -35,11 +35,9 @@ export function Navbar() {
       </div>
 
       <div style={{ display: 'flex', gap: '2px', flex: 1 }}>
-        <TabLink href="/" label="Régions" active={pathname === '/'} />
+        <TabLink href="/" label="Draft" active={pathname === '/'} />
+        <TabLink href="/champions" label="Champions" active={pathname === '/champions'} />
         <TabLink href="/history" label="Historique" active={pathname === '/history'} />
-        {user && (
-          <TabLink href="/room" label="Draft" active={pathname.startsWith('/room')} />
-        )}
         {user?.isAdmin && (
           <TabLink href="/admin" label="Admin" active={pathname === '/admin'} />
         )}

@@ -1,14 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { ChampionCard } from '@/components/ChampionCard'
-import { TeamBuilder } from '@/components/TeamBuilder'
-import { RecordGame } from '@/components/RecordGame'
-import { Shuffle, ChevronLeft, Users, BookOpen } from 'lucide-react'
-import type { Region, RegionDetail } from '@/lib/types'
-
-const ROLES = ['top', 'jungle', 'mid', 'bot', 'support']
+import { Shuffle, LogIn } from 'lucide-react'
+import type { Region } from '@/lib/types'
 
 const REGION_COLORS: Record<string, string> = {
   demacia: '#4A7FBF', noxus: '#A82020', freljord: '#4A8FBF',
@@ -29,31 +25,32 @@ function splashUrl(slug: string) {
   return name ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${name}_0.jpg` : null
 }
 
-export default function ExplorerPage() {
-  const { user } = useAuthStore()
+export default function DraftPage() {
+  const { user, fetched } = useAuthStore()
+  const router = useRouter()
   const [regions, setRegions] = useState<Region[]>([])
-  const [selected, setSelected] = useState<Region | null>(null)
-  const [detail, setDetail] = useState<RegionDetail | null>(null)
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [loading, setLoading] = useState(false)
-  const [panel, setPanel] = useState<'team' | 'record' | null>(null)
   const [spinning, setSpinning] = useState(false)
   const [highlightedId, setHighlightedId] = useState<number | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => { api.regions().then(setRegions) }, [])
 
-  const selectRegion = async (region: Region) => {
-    setSelected(region)
-    setLoading(true)
-    setRoleFilter('all')
-    setPanel(null)
+  const createRoom = async (region: Region) => {
+    if (!user) { setError('Connecte-toi pour créer une room.'); return }
+    setCreating(true); setError('')
     try {
-      setDetail(await api.region(region.slug))
-    } finally { setLoading(false) }
+      const { code } = await api.createRoom({ regionId: region.id })
+      router.push(`/room/${code}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur')
+      setCreating(false)
+    }
   }
 
   const randomRegion = () => {
-    if (!regions.length || spinning) return
+    if (!regions.length || spinning || creating) return
     const finalIdx = Math.floor(Math.random() * regions.length)
     const finalRegion = regions[finalIdx]
     const totalSteps = regions.length * 2 + finalIdx + 1
@@ -67,7 +64,7 @@ export default function ExplorerPage() {
         setTimeout(() => {
           setSpinning(false)
           setHighlightedId(null)
-          selectRegion(finalRegion)
+          createRoom(finalRegion)
         }, 500)
         return
       }
@@ -77,118 +74,75 @@ export default function ExplorerPage() {
     tick()
   }
 
-  const filteredChampions = detail?.champions?.filter(c =>
-    roleFilter === 'all' || c.roles?.some(r => r.role === roleFilter)
-  ) ?? []
-
-  if (!selected) {
-    return (
-      <main className="main-content">
-        <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>Choisissez une Région</h1>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <p style={{ color: 'var(--text)', fontSize: '14px' }}>
-              Sélectionnez une région de Runeterra pour le défi Globe-Trotter
-            </p>
-            <button className="btn btn-outline" onClick={randomRegion} disabled={spinning}>
-              <Shuffle size={14} style={spinning ? { animation: 'spin 0.5s linear infinite' } : {}} />
-              {spinning ? 'Sélection…' : 'Région aléatoire'}
-            </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
-          {regions.map(r => (
-            <RegionCard
-              key={r.id} region={r}
-              onClick={() => !spinning && selectRegion(r)}
-              highlighted={highlightedId === r.id}
-              dimmed={spinning && highlightedId !== r.id}
-            />
-          ))}
-        </div>
-      </main>
-    )
+  const handleJoin = () => {
+    const code = joinCode.trim().toUpperCase()
+    if (!code) return
+    router.push(`/room/${code}`)
   }
-
-  const accent = REGION_COLORS[selected.slug] ?? 'var(--gold)'
 
   return (
     <main className="main-content">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <button className="btn btn-ghost" onClick={() => { setSelected(null); setDetail(null) }} style={{ padding: '6px 10px' }}>
-          <ChevronLeft size={16} /> Retour
-        </button>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ fontSize: '22px', marginBottom: '2px' }}>{selected.name}</h2>
-          <p style={{ color: 'var(--text)', fontSize: '13px' }}>{selected.description}</p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-outline" onClick={() => {
-            if (!regions.length) return
-            const others = regions.filter(r => r.id !== selected.id)
-            selectRegion(others[Math.floor(Math.random() * others.length)])
-          }}>
-            <Shuffle size={13} /> Autre région
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>Draft Champion Select</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <p style={{ color: 'var(--text)', fontSize: '14px' }}>
+            Choisissez une région pour créer une room de draft, ou rejoignez-en une avec un code.
+          </p>
+          <button className="btn btn-outline" onClick={randomRegion} disabled={spinning || creating}>
+            <Shuffle size={14} style={spinning ? { animation: 'spin 0.5s linear infinite' } : {}} />
+            {spinning ? 'Sélection…' : 'Région aléatoire'}
           </button>
-          {detail && user && (
-            <button className="btn btn-outline"
-              style={panel === 'record' ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}}
-              onClick={() => setPanel(p => p === 'record' ? null : 'record')}>
-              <BookOpen size={13} /> Enregistrer une partie
-            </button>
-          )}
-          {detail && (
-            <button className="btn btn-gold" onClick={() => setPanel(p => p === 'team' ? null : 'team')}>
-              <Users size={14} /> {panel === 'team' ? 'Cacher équipe' : 'Monter une équipe'}
-            </button>
-          )}
         </div>
       </div>
 
-      {panel === 'team' && detail && (
-        <div style={{ marginBottom: '20px' }}>
-          <TeamBuilder regionSlug={selected.slug} regionName={selected.name} />
-        </div>
-      )}
-      {panel === 'record' && detail && (
-        <div style={{ marginBottom: '20px' }}>
-          <RecordGame
-            regionId={detail.id} regionName={detail.name}
-            champions={detail.champions}
-            onClose={() => setPanel(null)} onSaved={() => setPanel(null)}
+      <div className="card" style={{ marginBottom: 24, maxWidth: 480 }}>
+        <label style={{ display: 'block', marginBottom: 8, fontSize: '13px', fontWeight: 500 }}>
+          Rejoindre une room existante
+        </label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            className="input"
+            placeholder="Code de la room…"
+            value={joinCode}
+            onChange={e => setJoinCode(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleJoin() }}
+            style={{ textTransform: 'uppercase', letterSpacing: 2, flex: 1 }}
+            maxLength={8}
           />
+          <button className="btn btn-outline" onClick={handleJoin} disabled={!joinCode.trim()}>
+            <LogIn size={14} /> Rejoindre
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ color: 'var(--danger)', fontSize: '13px', marginBottom: 16 }}>{error}</div>
+      )}
+
+      {fetched && !user && (
+        <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: 16 }}>
+          <a href="/auth" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Connecte-toi</a> pour créer une room en cliquant sur une région.
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <FilterBtn label="Tous" active={roleFilter === 'all'} color="var(--text-lt)" onClick={() => setRoleFilter('all')} />
-        {ROLES.map(r => (
-          <FilterBtn key={r} label={r} active={roleFilter === r} color={`var(--${r})`} onClick={() => setRoleFilter(r)} />
+      {creating && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, color: 'var(--text-dim)', fontSize: '13px' }}>
+          <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+          Création de la room…
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+        {regions.map(r => (
+          <RegionCard
+            key={r.id}
+            region={r}
+            onClick={() => !spinning && !creating && createRoom(r)}
+            highlighted={highlightedId === r.id}
+            dimmed={(spinning || creating) && highlightedId !== r.id}
+          />
         ))}
       </div>
-
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div className="spinner" />
-        </div>
-      ) : filteredChampions.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-dim)' }}>
-          {detail?.champions?.length === 0
-            ? "Aucun champion assigné à cette région. Rendez-vous dans l'onglet Admin."
-            : `Aucun champion ${roleFilter} dans cette région.`}
-        </div>
-      ) : (
-        <>
-          <div style={{ color: 'var(--text-dim)', fontSize: '12px', marginBottom: '14px' }}>
-            {filteredChampions.length} champion{filteredChampions.length > 1 ? 's' : ''}
-            {user && <span style={{ marginLeft: 8 }}>· Indique tes préférences par rôle</span>}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: '10px' }}>
-            {filteredChampions.map(c => <ChampionCard key={c.id} champion={c} />)}
-          </div>
-        </>
-      )}
     </main>
   )
 }
@@ -241,22 +195,6 @@ function RegionCard({ region, onClick, highlighted, dimmed }: {
         <div style={{ fontSize: '11px', color: 'var(--text)', lineHeight: 1.4 }}>{region.description}</div>
       </div>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, ${accent}, transparent)`, opacity: 0.7 }} />
-    </button>
-  )
-}
-
-function FilterBtn({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      padding: '6px 14px', borderRadius: '8px', cursor: 'pointer',
-      border: `1px solid ${active ? color : 'var(--border)'}`,
-      background: active ? `${color}18` : 'transparent',
-      color: active ? color : 'var(--text)',
-      fontSize: '12px', fontWeight: active ? 600 : 400,
-      textTransform: 'capitalize', transition: 'all 0.15s',
-      fontFamily: "'Inter', sans-serif",
-    }}>
-      {label}
     </button>
   )
 }
