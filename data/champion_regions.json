@@ -1,0 +1,76 @@
+{
+  "_note": "Clés = slugs de régions, valeurs = riot_id Data Dragon. Un champion peut apparaître dans plusieurs régions.",
+
+  "demacia": [
+    "Fiora", "Galio", "Garen", "JarvanIV", "Kayle", "Lucian",
+    "Lux", "Morgana", "Poppy", "Quinn", "Shyvana", "Sona",
+    "Sylas", "Vayne", "XinZhao"
+  ],
+
+  "noxus": [
+    "Ambessa", "Briar", "Cassiopeia", "Darius", "Draven",
+    "Katarina", "Kled", "Leblanc", "Mel", "Mordekaiser",
+    "Rell", "Riven", "Samira", "Sion", "Swain",
+    "Talon", "Vladimir"
+  ],
+
+  "freljord": [
+    "Anivia", "Ashe", "Aurora", "Braum", "Gnar", "Gragas", "Lissandra",
+    "Nunu", "Olaf", "Ornn", "Sejuani", "Trundle",
+    "Tryndamere", "Udyr", "Volibear"
+  ],
+
+  "ionia": [
+    "Ahri", "Akali", "Hwei", "Irelia", "Ivern", "Jhin",
+    "Karma", "Kayn", "Kennen", "LeeSin", "Lillia", "MasterYi",
+    "MonkeyKing", "Rakan", "Sett", "Shen", "Syndra", "Varus",
+    "Xayah", "Yasuo", "Yone", "Yunara", "Zed"
+  ],
+
+  "piltover": [
+    "Caitlyn", "Camille", "Corki", "Ezreal", "Heimerdinger", "Jayce",
+    "Orianna", "Seraphine", "Vi"
+  ],
+
+  "zaun": [
+    "Blitzcrank", "DrMundo", "Ekko", "Janna", "Jinx", "Renata",
+    "Singed", "Twitch", "Urgot", "Viktor",
+    "Warwick", "Zac", "Zeri", "Ziggs"
+  ],
+
+  "bilgewater": [
+    "Fizz", "Gangplank", "Graves", "Illaoi", "MissFortune",
+    "Nautilus", "Nilah", "Pyke", "TahmKench", "TwistedFate"
+  ],
+
+  "shadow-isles": [
+    "Elise", "Fiddlesticks", "Gwen", "Hecarim", "Kalista",
+    "Karthus", "Maokai", "Senna", "Thresh", "Vex",
+    "Viego", "Yorick"
+  ],
+
+  "targon": [
+    "Aphelios", "AurelionSol", "Diana", "Leona", "Pantheon",
+    "Soraka", "Taric", "Zoe"
+  ],
+
+  "shurima": [
+    "Akshan", "Amumu", "Azir", "KSante", "Naafiri", "Nasus",
+    "Rammus", "Renekton", "Sivir", "Taliyah", "Xerath"
+  ],
+
+  "ixtal": [
+    "Malphite", "Milio", "Neeko", "Nidalee", "Qiyana", "Rengar", "Skarner","Zyra"
+  ],
+
+  "void": [
+    "Belveth", "Chogath", "Kaisa", "Kassadin", "Khazix",
+    "KogMaw", "Malzahar", "RekSai", "Velkoz"
+  ],
+
+  "bandlecity": [
+    "Corki", "Fizz", "Gnar", "Heimerdinger", "Kennen", "Kled",
+    "Lulu", "Poppy", "Rumble", "Teemo", "Tristana",
+    "Veigar", "Vex", "Yuumi", "Ziggs"
+  ]
+}
