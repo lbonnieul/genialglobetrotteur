@@ -5,7 +5,6 @@ import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import type { Champion } from '@/lib/types'
 
 const ROLE_ORDER = ['top', 'jungle', 'mid', 'bot', 'support']
-const ROLE_ICONS: Record<string, string> = { top: '🛡️', jungle: '🌲', mid: '⚡', bot: '🏹', support: '💠' }
 
 export function ChampionCard({ champion }: { champion: Champion }) {
   const { user, getPreference, setPreferenceLocal } = useAuthStore()
@@ -67,7 +66,7 @@ export function ChampionCard({ champion }: { champion: Champion }) {
           return (
             <div key={role} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className={`role-badge role-${role}`} style={{ flex: 1 }}>
-                {ROLE_ICONS[role]} {role}
+                {role}
               </span>
               {user && (
                 <div style={{ display: 'flex', gap: '2px' }}>

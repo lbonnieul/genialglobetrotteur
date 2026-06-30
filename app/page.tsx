@@ -9,7 +9,6 @@ import { Shuffle, ChevronLeft, Users, BookOpen } from 'lucide-react'
 import type { Region, RegionDetail } from '@/lib/types'
 
 const ROLES = ['top', 'jungle', 'mid', 'bot', 'support']
-const ROLE_ICONS: Record<string, string> = { top: '🛡️', jungle: '🌲', mid: '⚡', bot: '🏹', support: '💠' }
 
 const REGION_COLORS: Record<string, string> = {
   demacia: '#4A7FBF', noxus: '#A82020', freljord: '#4A8FBF',
@@ -165,7 +164,7 @@ export default function ExplorerPage() {
       <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <FilterBtn label="Tous" active={roleFilter === 'all'} color="var(--text-lt)" onClick={() => setRoleFilter('all')} />
         {ROLES.map(r => (
-          <FilterBtn key={r} label={`${ROLE_ICONS[r]} ${r}`} active={roleFilter === r} color={`var(--${r})`} onClick={() => setRoleFilter(r)} />
+          <FilterBtn key={r} label={r} active={roleFilter === r} color={`var(--${r})`} onClick={() => setRoleFilter(r)} />
         ))}
       </div>
 

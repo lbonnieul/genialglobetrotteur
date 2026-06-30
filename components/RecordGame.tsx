@@ -1,12 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { PlayerInput } from '@/components/PlayerInput'
 import { Plus, Trash2, Trophy, X } from 'lucide-react'
 import type { Champion } from '@/lib/types'
 
 const ROLES = ['top', 'jungle', 'mid', 'bot', 'support']
-const ROLE_ICONS: Record<string, string> = { top: '🛡️', jungle: '🌲', mid: '⚡', bot: '🏹', support: '💠' }
 
 interface PlayerRow {
   playerName: string
@@ -16,6 +16,8 @@ interface PlayerRow {
   role: string
   userId: number | null
 }
+
+interface KnownPlayer { id: number | null; name: string }
 
 export function RecordGame({ regionId, regionName, champions, onClose, onSaved }: {
   regionId: number
@@ -30,8 +32,11 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
   const [players, setPlayers] = useState<PlayerRow[]>([
     { playerName: user?.username ?? '', championRiotId: '', championName: '', championImageUrl: '', role: '', userId: user?.id ?? null }
   ])
+  const [knownPlayers, setKnownPlayers] = useState<KnownPlayer[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => { api.players().then(setKnownPlayers) }, [])
 
   const addPlayer = () => {
     if (players.length >= 5) return
@@ -40,7 +45,11 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
 
   const removePlayer = (i: number) => setPlayers(p => p.filter((_, idx) => idx !== i))
 
-  const updatePlayer = (i: number, key: keyof PlayerRow, val: string) => {
+  const updatePlayerName = (i: number, name: string, userId: number | null) => {
+    setPlayers(p => p.map((pl, idx) => idx !== i ? pl : { ...pl, playerName: name, userId }))
+  }
+
+  const updatePlayer = (i: number, key: 'championRiotId' | 'role', val: string) => {
     setPlayers(p => p.map((pl, idx) => {
       if (idx !== i) return pl
       if (key === 'championRiotId') {
@@ -51,14 +60,21 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
     }))
   }
 
+  // Filter out already-added players from suggestions for each row
+  const suggestionsFor = (i: number) =>
+    knownPlayers.filter(p => !players.some((pl, idx) => idx !== i && pl.playerName.toLowerCase() === p.name.toLowerCase()))
+
+  // Champions and roles already taken by other rows
+  const usedChampions = (i: number) => new Set(players.filter((_, idx) => idx !== i).map(p => p.championRiotId).filter(Boolean))
+  const usedRoles = (i: number) => new Set(players.filter((_, idx) => idx !== i).map(p => p.role).filter(Boolean))
+
   const handleSave = async () => {
     const valid = players.every(p => p.playerName && p.championRiotId && p.role)
     if (!valid) return setError('Remplissez tous les champs pour chaque joueur.')
     setLoading(true); setError('')
     try {
       await api.createGame({
-        regionId,
-        won,
+        regionId, won,
         notes: notes || undefined,
         players: players.map(p => ({
           userId: p.userId,
@@ -106,17 +122,20 @@ export function RecordGame({ regionId, regionName, champions, onClose, onSaved }
             gap: '8px', alignItems: 'center',
             background: 'var(--dark-3)', padding: '10px', borderRadius: '4px', border: '1px solid var(--dark-4)',
           }}>
-            <input className="input" style={{ fontSize: '13px' }} placeholder="Pseudo joueur"
-              value={p.playerName} onChange={e => updatePlayer(i, 'playerName', e.target.value)} />
+            <PlayerInput
+              value={p.playerName}
+              onChange={(name, userId) => updatePlayerName(i, name, userId)}
+              players={suggestionsFor(i)}
+            />
             <select className="input" style={{ fontSize: '13px' }}
               value={p.championRiotId} onChange={e => updatePlayer(i, 'championRiotId', e.target.value)}>
               <option value="">Champion…</option>
-              {champions.map(c => <option key={c.riotId} value={c.riotId}>{c.name}</option>)}
+              {champions.filter(c => !usedChampions(i).has(c.riotId)).map(c => <option key={c.riotId} value={c.riotId}>{c.name}</option>)}
             </select>
             <select className="input" style={{ fontSize: '13px' }}
               value={p.role} onChange={e => updatePlayer(i, 'role', e.target.value)}>
               <option value="">Rôle…</option>
-              {ROLES.map(r => <option key={r} value={r}>{ROLE_ICONS[r]} {r}</option>)}
+              {ROLES.filter(r => !usedRoles(i).has(r)).map(r => <option key={r} value={r}>{r}</option>)}
             </select>
             {players.length > 1
               ? <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => removePlayer(i)}><Trash2 size={14} /></button>

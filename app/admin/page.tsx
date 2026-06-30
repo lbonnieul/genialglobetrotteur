@@ -7,7 +7,6 @@ import { Search, Save, ChevronDown } from 'lucide-react'
 import type { Champion, Region } from '@/lib/types'
 
 const ROLES = ['top', 'jungle', 'mid', 'bot', 'support']
-const ROLE_ICONS: Record<string, string> = { top: '🛡️', jungle: '🌲', mid: '⚡', bot: '🏹', support: '💠' }
 
 interface ChampEdit { roles: string[]; regionIds: number[] }
 
@@ -119,7 +118,7 @@ export default function AdminPage() {
                     <button key={role} onClick={() => toggleRole(c.riotId, role)}
                       className={`role-badge role-${role}`}
                       style={{ opacity: active ? 1 : 0.2, cursor: 'pointer', border: active ? undefined : '1px dashed' }}>
-                      {ROLE_ICONS[role]} {role}
+                      {role}
                     </button>
                   )
                 })}

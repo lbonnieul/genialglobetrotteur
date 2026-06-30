@@ -46,6 +46,9 @@ export const api = {
   setPreference: (championRiotId: string, role: string, liked: boolean | null) =>
     request<Preference | null>('/api/preferences', put({ championRiotId, role, liked })),
 
+  // Players
+  players: () => request<{ id: number | null; name: string }[]>('/api/players'),
+
   // Games
   games: () => request<Game[]>('/api/games'),
   deleteGame: (id: number) => request<void>(`/api/games/${id}`, { method: 'DELETE' }),

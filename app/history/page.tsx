@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import { Search, Trash2 } from 'lucide-react'
 import type { Game, Region } from '@/lib/types'
 
-const ROLE_ICONS: Record<string, string> = { top: '🛡️', jungle: '🌲', mid: '⚡', bot: '🏹', support: '💠' }
+const ROLE_ORDER = ['top', 'jungle', 'mid', 'bot', 'support']
 
 export default function HistoryPage() {
   const { user } = useAuthStore()
@@ -113,7 +113,7 @@ function GameCard({ game, isAdmin, onDelete }: { game: Game; isAdmin?: boolean; 
       )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {game.players.map((p, i) => (
+        {[...game.players].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)).map((p, i) => (
           <div key={i} style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             background: 'var(--dark-4)', borderRadius: '8px', padding: '5px 8px',
@@ -127,7 +127,7 @@ function GameCard({ game, isAdmin, onDelete }: { game: Game; isAdmin?: boolean; 
               <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
                 {p.championName} ·
                 <span className={`role-badge role-${p.role}`} style={{ fontSize: '10px', padding: '1px 5px' }}>
-                  {ROLE_ICONS[p.role]} {p.role}
+                  {p.role}
                 </span>
               </div>
             </div>
